@@ -7,7 +7,7 @@ Projected Light Sheet Microscopy (pLSM) offers a highly cost-optimized and scala
 ![pLSM setup](./Img/setup.png)
 
 ## Installation
-### Jetson board
+### Nvidia Jetson Nano board with SD card (shareable system image will be available soon)
 #### Python environment
 - install Anaconda3
 - create python3 environment
