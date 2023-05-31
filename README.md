@@ -1,6 +1,6 @@
 # pLSM
  Software control for projected light sheet microscopy
-
+![Mouse whole brain vasculature imaged by pLSM](./Img/vascPLSM.png)
 
 ## Installation
 ### Jetson board
