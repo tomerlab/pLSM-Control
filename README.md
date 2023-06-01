@@ -28,5 +28,5 @@ Projected Light Sheet Microscopy (pLSM) offers a highly cost-optimized and scala
 
 ### Remote control
 #### Install latest Chrome
-Or ipywidgets won't work
+- Or ipywidgets won't work
 #### Install PuTTY
