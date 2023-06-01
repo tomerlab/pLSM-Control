@@ -3,7 +3,7 @@
 ![Mouse whole brain vasculature imaged by pLSM](./Img/vascPLSM.png)
 
 ## Overview
-Projected Light Sheet Microscopy (pLSM) offers a highly cost-optimized and scalable solution while maintaining excellent imaging quality. It leverages off-the-shelf components, including pocket LASER projectors as multi-color illumination sources, Nvidia Jetson Nano boards for electronic control, 3D-printed imaging chambers, and optimized scan and detection optics. It's capable of performing high-resolution multi-color imaging of large mouse and human brain samples cleared using various methods. 
+Projected Light Sheet Microscopy (pLSM) offers a highly cost-optimized and scalable solution while maintaining excellent imaging quality. It leverages off-the-shelf components, including pocket LASER projectors as multi-color illumination sources, Nvidia Jetson Nano boards for electronic control, 3D-printed imaging chambers, optimized scan and detection optics and a plug-and-play architecture. It's capable of performing high-resolution multi-color imaging of large mouse and human brain samples cleared using various methods. 
 ![pLSM setup](./Img/setup.png)
 
 ## Installation
