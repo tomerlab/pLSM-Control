@@ -4,6 +4,7 @@ import sys
 import os
 import io
 sys.path.append('../')
+sys.path.append('../../')
 import time
 import numpy as np
 import PIL
@@ -18,16 +19,18 @@ class Camera(object):
     def __init__(self, cam, width = 2048, height = 1500, binning = 1, \
                  exposure = 100000, framerate = 10, \
                 pixelFormat = 8, gain = 10):
+        self.cam = cam
+#         if not self.search_camera(camNo):
+#             return
         
         self.stopFlag = False
         self.enable = False
-        self.cam = cam
         self.exposure = exposure
         self.framerate = framerate
         formats = {8:'Mono8', 16:'Mono16'}
         self.pixelFormat = formats[pixelFormat]
-        self.width = int(np.min([width, 5000]))
-        self.height = int(np.min([height, 3000]))
+        self.width = int(np.min([width, 16000]))
+        self.height = int(np.min([height, 8000]))
         self.binning = binning
         self.trigger = []
         
@@ -44,7 +47,47 @@ class Camera(object):
         self.ExpInter = 0
         self.ExpFrame = 4
         self.ExpPath = os.getcwd()
-        
+        return
+    
+#     def search_camera(self, camNo):
+#         # Test IO
+#         try:
+#             test_file = open('test.txt', 'w+')
+#         except IOError:
+#             print('Unable to write to current directory. Please check permissions.')
+#             input('Press Enter to exit...')
+#             return False
+#         test_file.close()
+#         os.remove(test_file.name)
+
+#         # Retrieve singleton reference to system object
+#         system = PySpin.System.GetInstance()
+
+#         # Get current library version
+#         version = system.GetLibraryVersion()
+#         print('Library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
+
+#         # Retrieve list of cameras from the system
+#         cam_list = system.GetCameras()
+#         num_cameras = cam_list.GetSize()
+#         print('Number of cameras detected: %d' % num_cameras)
+
+#         # Finish if there are no cameras
+#         if num_cameras == 0:
+#             # Clear camera list before releasing system
+#             cam_list.Clear()
+#             # Release system instance
+#             system.ReleaseInstance()
+#             print('Not enough cameras!')
+#             input('Done! Press Enter to exit...')
+#             return False
+#         print('Done1')
+#         ## Get camera
+# #         cam = cam_list[camNo]
+# #         self.cam = cam
+#         print('Done')
+#         return False
+            
     def setup_single_camera(self, isPrint = False):
         try:
             result = True

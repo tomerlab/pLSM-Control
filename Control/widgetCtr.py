@@ -15,24 +15,26 @@ import ipywidgets as widgets
 import IPython.display as ipd
 from ipyfilechooser import FileChooser
 import ipysheet
+import pandas as pd
 import pickle
 
 from experiment import ExperimentControl
 
 
 class WidgetsPanel(object):
-    def __init__(self, camera, illumination, outputPath):
+    def __init__(self, camera, illumination, stage, outputPath):
         
         self.outputPathInit = outputPath
         self._style = {'description_width': 'initial'}
         
         self.camera = camera
         self.illumination = illumination
+        self.stage = stage
         self.outputPanel = self.setup_output_panel()
         
         self.load_parameters()
         
-        self.experiment = ExperimentControl(self.camera, self.illumination, self)
+        self.experiment = ExperimentControl(self.camera, self.illumination, self.stage, self)
         
         
 
@@ -42,29 +44,34 @@ class WidgetsPanel(object):
                         layout=widgets.Layout(width='50%'), style = self._style)
         
         exp_notice = widgets.HTML(value = \
-                 f"<b><font color='red'>{'Please stop acquisition and laser before starting experiment'}</b>")
+                 f"<b><font color='red'></b>")
+        self.status = widgets.HTML(value = f"<b>Output Status</b>")
+        self.warning = widgets.HTML(value = f"<b><font color='red'></b>")
+
         exit_button_w = widgets.Button(description='Exit')
         exit_button_w.on_click(self.exit_button_clicked)
 
                                   
         self.streaming                = self.setup_streaming()
         self.camera_control           = self.setup_camera()
+        self.stage_control            = self.setup_stage()
         self.illumination_control     = self.setup_illumination()
                                   
         self.wideField_control        = self.setup_wideField_experiment()
         self.largeFOV_control         = self.setup_largeFOV_experiment()
         self.realtimeScanning_control = self.setup_realtimeScanning_experiment()
                                   
-        tab = widgets.Tab()
+        tab = widgets.Tab(layout=widgets.Layout(width='90%'))
         tab.children = [self.realtimeScanning_control, self.wideField_control, self.largeFOV_control]
         tab.set_title(0, 'Light sheet scan')
         tab.set_title(1, 'Wide Field')
         tab.set_title(2, 'Large FOV')
 
 
-        experimentPanel = widgets.VBox([widgets.HBox([self.camera_control, \
-                                                        self.illumination_control]), \
-                                           exp_notice, self._outputPath_w, tab])
+        experimentPanel = widgets.VBox([widgets.HBox([widgets.VBox([self.camera_control, self.stage_control], 
+                                                                   layout=widgets.Layout(width='45%')), \
+                                                        self.illumination_control], ), \
+                                           exp_notice, self._outputPath_w, self.warning, self.status, tab])
                                   
         outputPanel = widgets.VBox([self.streaming, experimentPanel, exit_button_w])
                                   
@@ -99,10 +106,12 @@ class WidgetsPanel(object):
     
     
     def setup_camera(self): 
-        self.framerate_w = widgets.IntSlider(min=1, max=30, value=10, description='Frame rate (HZ)', \
+#         self.framerate_w = widgets.FloatSlider(min=0.2, max=30, value=10, step=0.2, description='Frame rate (HZ)', \
+#                                 continuous_update=False, layout=widgets.Layout(width='90%'), \
+#                                              style = self._style)
+        self.framerate_w = widgets.FloatSlider(min=0.005, max=20, value=10, step=0.005, description='Frame rate (HZ)', \
                                 continuous_update=False, layout=widgets.Layout(width='90%'), \
                                              style = self._style)
-        
         self.exposure_w = widgets.FloatSlider(min=16.83, max=100, value=16.83, description='Exposure (ms)', \
                                          step = 16.83, continuous_update=False, \
                                          layout=widgets.Layout(width='90%'), style = self._style)
@@ -133,11 +142,90 @@ class WidgetsPanel(object):
                                exposure = self.exposure_w, gain = self.gain_w)             
                                   
 
-        camera_control = widgets.VBox([camera_button_w, camera_w,exposureStep_w], layout=widgets.Layout(width='50%'))
+        camera_control = widgets.VBox([camera_button_w, camera_w, exposureStep_w], 
+                                      layout=widgets.Layout(width='95%', border = 'solid 1px'))
                                   
-                                  
-        
         return camera_control
+    
+    def setup_stage(self): 
+        def stage_home(button):
+            stageHome_w.disabled = True
+            allHomed = self.stage.home_all()
+            for iStage in ['X', 'Y', 'Z']:
+                self.stage_w[iStage]['Pos_w'].value = 0
+            stageHome_w.disabled = False
+            return
+        
+        self.stage_w = {'X': [], 'Y': [], 'Z': []}
+        
+        stageHome_w = widgets.Button(description='Home',  layout=widgets.Layout(width='auto'))
+        stageHome_w.on_click(stage_home)
+        
+        for iStage in ['X', 'Y', 'Z']:
+            self.stage_w[iStage] = self.setup_singleStage(iStage)
+            
+        stage_control = widgets.VBox([stageHome_w] + [self.stage_w[iStage]['Box'] for iStage in ['X', 'Y', 'Z']], 
+                                     layout=widgets.Layout(width='95%', border = 'solid 1px'))
+        return stage_control
+        
+    def setup_singleStage(self, iStage): 
+        isMoving = False
+        def stage_update(pos):
+
+            stageUp_w.disabled, stageDown_w.disabled, stagePos_w.disabled = True, True, True
+            isMoving = True
+            
+            posPre = self.stage.get_position(iStage)
+            self.stage.move(iStage, pos)
+            for i in range(300):
+                time.sleep(0.1)
+                posNow = self.stage.get_position(iStage)
+                if (np.abs(posNow - posPre) < 1e-7) and (np.abs(posNow - pos) < 1e-3) :
+                    # if stage stopped moving And stage reaches close to target location
+                    break
+                posPre = posNow
+                
+            isMoving = False
+            stageUp_w.disabled, stageDown_w.disabled, stagePos_w.disabled = False, False, False
+            
+            # In case of error accumulation, synchrony of widget value and stage value
+            stagePos_w.value = round(self.stage.get_position(iStage), 3)
+            return
+
+        def stage_click(button):
+            if (button.description == '+') and (not isMoving):
+                stagePos_w.value = round(stagePos_w.value + stageStep_w.value, 3)
+            elif (button.description == '-') and (not isMoving):
+                stagePos_w.value = round(stagePos_w.value - stageStep_w.value, 3)
+#             stageUp_w.disable, stageDown_w.disable = True, True
+#             time.sleep(0.5)
+#             stageUp_w.disable, stageDown_w.disable = True, True
+            return
+            
+        stageName_w = widgets.Label(value='Stage ' + iStage + ' :', 
+                                    layout=widgets.Layout(width='auto', grid_area = 'stageName'), style=self._style) 
+        stagePos_w = widgets.BoundedFloatText(value=round(self.stage.get_position(iStage), 3), min=0, max=23, 
+                                              step=0.001, description='Loc', 
+                                              layout=widgets.Layout(width='auto', grid_area = 'stagePos'), style = self._style)   
+        stageStep_w = widgets.BoundedFloatText(value=0.5, min=0.001, max=2, step=0.001, description='Step', 
+                                              layout=widgets.Layout(width='auto', grid_area = 'stageStep'), style = self._style)
+        stageUp_w = widgets.Button(description='+',  layout=widgets.Layout(width='auto', grid_area = 'stageUp'))
+        stageUp_w.on_click(stage_click)
+        stageDown_w = widgets.Button(description='-', layout=widgets.Layout(width='auto', grid_area = 'stageDown'))
+        stageDown_w.on_click(stage_click) 
+
+        interStagePos_w = interactive(stage_update, pos = stagePos_w)
+        
+        box_w = widgets.HBox([stageName_w, stageDown_w, interStagePos_w, stageUp_w, stageStep_w], layout=widgets.Layout(width='95%',
+                                            grid_template_rows = 'auto',
+                                            grid_template_columns = '10% 20% 50% 20% 50%',
+                                            grid_template_areas = '''
+                                                "stageName stageDown stagePos stageUp stageStep"
+                                            '''))
+        
+        return {'Pos_w': stagePos_w, 'Up_w': stageUp_w, 'Down_w': stageDown_w, 'Box': box_w}
+    
+    
         
     def setup_illumination(self):
         ''' 
@@ -170,9 +258,16 @@ class WidgetsPanel(object):
         self.lightSheetRotate_w = widgets.Checkbox(value=True, description='Flip90', disabled=False)
         
         if len(self.illumination) == 1:
-            self.illumSide_w = widgets.RadioButtons(options=['Illumination1'], disabled=True)
+            self.illumSide_w = widgets.RadioButtons(options=['Illum1'], disabled=True, 
+                                                     layout=widgets.Layout(width='90%'))
+            self.imagingArm_w = widgets.RadioButtons(options=['Illum1'], disabled=True, description='imagingArm', 
+                                                     layout=widgets.Layout(width='90%'))
         else:
-            self.illumSide_w = widgets.RadioButtons(options=['Illumination1', 'Illumination2'],disabled=False)                           
+            self.illumSide_w = widgets.RadioButtons(options=['Illum1', 'Illum2'],disabled=False, 
+                                                     layout=widgets.Layout(width='90%'))     
+            self.imagingArm_w = widgets.RadioButtons(options=['Illum1', 'Illum2', 'Both'], \
+                                                     disabled=False, description='imagingArm', 
+                                                     layout=widgets.Layout(width='90%'))                      
                                   
         self.illum_button_w = widgets.Button(description='Illumination Off')
         
@@ -181,14 +276,18 @@ class WidgetsPanel(object):
                                      lwd=self.lightSheetWidth_w, lht=self.lightSheetHeight_w, lcent=self.lightSheetCenter_w,  \
                                      loffset=self.lightSheetOffset_w, d90=self.lightSheetRotate_w)
                                   
-        switchIllumSide_w = interactive(self.interactive_illumination_switch, illumSide=self.illumSide_w)
+        switchIllumSide_w = interactive(self.interactive_illumination_switch, 
+                                        illumSide=self.illumSide_w, layout=widgets.Layout(width='90%'))
         
         # Button responses
         self.illum_button_w.on_click(self.illumination_button_clicked)
         
         # Integrate
-        illumination_control_w = widgets.VBox([self.illum_button_w, illumination_w, switchIllumSide_w], \
-                                    layout=widgets.Layout(width='50%'))
+        illumination_control_w = widgets.VBox([self.illum_button_w, illumination_w, \
+                                               widgets.HBox([widgets.VBox([switchIllumSide_w], layout=widgets.Layout(width='90%')), 
+                                                             self.imagingArm_w],
+                                                            layout=widgets.Layout(width='90%'))], \
+                                    layout=widgets.Layout(width='45%', border = 'solid 1px'))
         return illumination_control_w
     
     def setup_realtimeScanning_experiment(self):
@@ -197,14 +296,14 @@ class WidgetsPanel(object):
                                              description='Scanning Volume #', \
                                layout=widgets.Layout(width='90%'), style = self._style)
         
-        self._scanningDuration_w =widgets.BoundedFloatText(value=0.01, min=0, max=100.0, step=0.01, \
-                                                description='Total Duration (h)', \
+        self._scanningDuration_w =widgets.BoundedFloatText(value=1, min=0, max=5000.0, step=0.1, \
+                                                description='Total Duration (min)', \
                                                 layout=widgets.Layout(width='90%'), style = self._style)
         
-        self._scanningInterval_w = widgets.BoundedFloatText(value=0.01, min=0.01, max=100.0, step=0.01, \
-                                              description='Trial Inverval (h)', \
+        self._scanningInterval_w = widgets.BoundedFloatText(value=1, min=0.1, max=5000.0, step=0.1, \
+                                              description='Trial Inverval (min)', \
                                                 layout=widgets.Layout(width='90%'), style = self._style)
-        self._scanningRange_w = widgets.IntSlider(min=1, max=self.illumination[0].sc_W, value=100, \
+        self._scanningRange_w = widgets.IntSlider(min=0, max=self.illumination[0].sc_W, value=100, \
                                         description='Scanning Range', continuous_update=False, \
                                layout=widgets.Layout(width='90%'), style = self._style)
         
@@ -228,7 +327,7 @@ class WidgetsPanel(object):
 
             
     def setup_wideField_experiment(self):
-        self._totalFrames_w = widgets.BoundedIntText(value=1, min=1, max=10000, step=1, \
+        self._totalFrames_w = widgets.BoundedIntText(value=1, min=1, max=100000, step=1, \
                                                  description='WideField', \
                        layout=widgets.Layout(width='90%'), style = self._style)
 
@@ -286,11 +385,33 @@ class WidgetsPanel(object):
                                                    description='Overlap ratio (%)', \
                                layout=widgets.Layout(width='auto', grid_area = 'overlap'), style = self._style)
 
-
-
+        self._cameraX_w = widgets.BoundedFloatText(value=0.86, min=0.001, max=5, step=0.001, \
+                                            description='image size X (mm)', \
+                               layout=widgets.Layout(width='auto', grid_area = 'cameraX'), style = self._style)
+        
+        self._cameraY_w = widgets.BoundedFloatText(value=0.45, min=0.001, max=5, step=0.001, \
+                                                   description='image size Y (mm)', \
+                               layout=widgets.Layout(width='auto', grid_area = 'cameraY'), style = self._style)
+                                  
+        interactFOV_w = interactive(self.interactive_fov_update, \
+                                     minX = self._minX_w, minY = self._minY_w, minZ = self._minZ_w, \
+                                     maxX = self._maxX_w, maxY = self._maxY_w, maxZ = self._maxZ_w, \
+                                     deltaZ = self._deltaZ_w, overlap = self._overlap_w, \
+                                     cameraX = self._cameraX_w, cameraY = self._cameraY_w,
+                                     )
+#         setFOV_box = widgets.GridBox(children = interactFOV_w, \
+#                                             layout = widgets.Layout(width='100%', border = 'solid 1px',
+#                                             grid_template_rows = 'auto auto',
+#                                             grid_template_columns = '30% 30% 30%',
+#                                             grid_template_areas = '''
+#                                                 "minX minY minZ"
+#                                                 "maxX maxY maxZ"
+#                                                 "deltaZ overlap ."
+#                                                 "cameraX cameraY ."
+#                                             '''))
         setFOV_box = widgets.GridBox(children = [self._minX_w, self._minY_w, self._minZ_w, \
                                                  self._maxX_w, self._maxY_w, self._maxZ_w, \
-                                                 self._deltaZ_w, self._overlap_w], \
+                                                 self._deltaZ_w, self._overlap_w, self._cameraX_w, self._cameraY_w], \
                                             layout = widgets.Layout(width='100%', border = 'solid 1px',
                                             grid_template_rows = 'auto auto',
                                             grid_template_columns = '30% 30% 30%',
@@ -298,6 +419,7 @@ class WidgetsPanel(object):
                                                 "minX minY minZ"
                                                 "maxX maxY maxZ"
                                                 "deltaZ overlap ."
+                                                "cameraX cameraY ."
                                             '''))
 
         addOffset_button_w = widgets.Button(description='Add Offset', \
@@ -475,6 +597,15 @@ class WidgetsPanel(object):
 #         self.illumination[1].dark()
            
 #         self.illum_button_w.description='Illumination Off'
+    def interactive_fov_update(self, minX, minY, minZ, maxX, maxY, maxZ, \
+                                     deltaZ, overlap, cameraX, cameraY):
+        xStep = (1-overlap/100)*cameraX
+        x = np.arange(minX, maxX + xStep - 0.05, xStep)
+        yStep = (1-overlap/100)*cameraY
+        y = np.arange(minY, maxY + yStep - 0.05, yStep)
+        z = np.arange(minZ, maxZ, deltaZ)
+        
+        self.status.value = 'Large FOV x-{0}, y-{1}, z-{2}'.format(len(x), len(y), len(z))                          
                                   
     def addOffset_button_clicked(self, button):
         lsOffset = np.array((self._stageX_w.value, self._stageY_w.value, \
@@ -511,7 +642,7 @@ class WidgetsPanel(object):
         self.experiment.realtimeScanning_experiment_control(self._scanningVolume_w.value, \
                                             self._scanningDuration_w.value, self._scanningInterval_w.value, \
                                             self._scanningRange_w.value, self._scanningStep_w.value, \
-                                            self.illumination.loffset, self._outputPath_w.value)
+                                            self.lightSheetOffset_w.value, self._outputPath_w.value)
         
         button.disabled = False
         button.description = 'Begin scanning'
@@ -535,7 +666,8 @@ class WidgetsPanel(object):
         self.experiment.largeFOV_experiment_control( \
             self._minX_w.value, self._maxX_w.value, self._minY_w.value, self._maxY_w.value, \
             self._minZ_w.value, self._maxZ_w.value, \
-            self._deltaZ_w.value, self._overlap_w.value, self._alignment_array, self._outputPath_w.value)
+            self._deltaZ_w.value, self._overlap_w.value, self._cameraX_w.value, self._cameraY_w.value, \
+            self._alignment_array, self._outputPath_w.value)
         
         button.disabled = False
         button.description = 'Begin Experiment'
@@ -549,7 +681,36 @@ class WidgetsPanel(object):
         except:
             print('Exit failed. Camera still in acquisition') 
     
-
+    def save_metadata_file(self, path):
+        metadata = pd.DataFrame({'FrameRateHz': self.framerate_w.value,
+                      'ExposureSec': self.exposure_w.value,
+                      'Gain': self.gain_w.value,
+                      'Red': self.red_w.value,
+                      'Green': self.green_w.value,
+                      'Blue': self.blue_w.value,
+                      'LightSheetWidth': self.lightSheetWidth_w.value,
+                      'LightSheetHeight': self.lightSheetHeight_w.value,
+                      'LightSheetCenter': self.lightSheetCenter_w.value,
+                      'LightSheetOffset': self.lightSheetOffset_w.value,
+                      'LightSheetRotate': self.lightSheetRotate_w.value, 
+                      'ScanVolume': self._scanningVolume_w.value,
+                      'ScanDuration': self._scanningDuration_w.value,
+                      'ScanInterval': self._scanningInterval_w.value,
+                      'ScanRange': self._scanningRange_w.value,
+                      'ScanStep': self._scanningStep_w.value,
+                      'FOVminX': self._minX_w.value,
+                      'FOVmaxX': self._maxX_w.value,
+                      'FOVminY': self._minY_w.value,
+                      'FOVmaxY': self._maxY_w.value,
+                      'FOVminZ': self._minZ_w.value,
+                      'FOVmaxZ': self._maxZ_w.value,
+                      'FOVdeltaZ': self._deltaZ_w.value,
+                      'FOVoverlap': self._overlap_w.value,
+                      'FOVcameraX': self._cameraX_w.value,
+                      'FOVcameraY': self._cameraY_w.value,}, index = [0])
+        metadata.to_csv(path + r'/metadata.csv')
+        return 
+        
     def save_parameters(self):
         with open('__parameters__.pkl', 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump([self.framerate_w.value, self.exposure_w.value, self.gain_w.value] +
