@@ -6,9 +6,10 @@
 Projected Light Sheet Microscopy (pLSM) offers a highly cost-optimized and scalable solution while maintaining excellent imaging quality. It leverages off-the-shelf components, including pocket LASER projectors as multi-color illumination sources, Nvidia Jetson Nano boards for electronic control, 3D-printed imaging chambers, optimized scan and detection optics and a plug-and-play architecture. It's capable of performing high-resolution multi-color imaging of large mouse and human brain samples cleared using various methods. 
 ![pLSM setup](./Img/setup.png)
 
-#### Biorxiv Preprint here: https://www.biorxiv.org/content/10.1101/2023.05.31.543173v1
+#### Publication: https://www.nature.com/articles/s41551-024-01249-9
 
-## Installation
+## Installation (Further details in the Supplementary file in the publication)
+
 ### Nvidia Jetson Nano board with SD card (shareable system image will be available soon)
 #### Python environment
 - install Anaconda3
