@@ -46,7 +46,8 @@ Youtube [playlist](https://www.youtube.com/playlist?list=PLXQ8jqcqgW9DVrepPeLzAH
 
 
 ### Instructions for SD image installation and use:
-1. Download the system disk image, burn it onto an SD card using Win32DiskImager/balenaEther or similar software of your choice. 
+1. Request the system disk image, burn it onto an SD card using Win32DiskImager/balenaEther or similar software of your choice. 
+(Given the large size, we are figuring out a way to provide a public download link. In the mean time, please reach out.)
 
 2. Insert the SD card into the Nvidia Nano Board (at this stage, the board should be connected to a monitor, keyboard, mouse, and Ethernet internet). 
 
