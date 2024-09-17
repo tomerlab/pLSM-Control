@@ -1,5 +1,5 @@
 # pLSM: Affordable and scalable advanced light sheet microscopy
-![Mouse whole brain vasculature imaged by pLSM](./Img/MouseBrain_Vasc_2x2.png)
+![Mouse whole brain vasculature imaged by pLSM](./Img/MouseBrain_Vasculature_TomerLab_pLSM.png)
 
 ## Overview
 pLSM framework 
