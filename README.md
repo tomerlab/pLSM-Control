@@ -15,8 +15,8 @@ Nature Biomedical Engineering
 
 
 ## Installation (Further details in the Supplementary file in the publication)
-![](./img/setup.png)
-Supplementary file provides details on the assembly process
+![](./Img/setup.png)
+[Supplementary file](https://static-content.springer.com/esm/art%3A10.1038%2Fs41551-024-01249-9/MediaObjects/41551_2024_1249_MOESM1_ESM.pdf) provides details on the assembly process
 
 ### Nvidia Jetson Nano board SD card disk image for download:
 
