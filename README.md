@@ -12,7 +12,8 @@ https://rdcu.be/dTCrk
 https://www.nature.com/articles/s41551-024-01249-9
 \
 Nature Biomedical Engineering
-
+\
+Youtube [playlist](https://www.youtube.com/playlist?list=PLXQ8jqcqgW9DVrepPeLzAHwnEqtsX-N7M) of all supplementary videos associated with the publication.
 
 ## Installation (Further details in the Supplementary file in the publication)
 ![](./Img/setup.png)
