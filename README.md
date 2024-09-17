@@ -1,4 +1,4 @@
-# pLSM: Affordable and scalable advanced microscopy for biomedical sciences
+# pLSM: Affordable and scalable advanced light sheet microscopy
 ![Mouse whole brain vasculature imaged by pLSM](./Img/MouseBrain_Vasc_2x2.png)
 
 ## Overview
