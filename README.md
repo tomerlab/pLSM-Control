@@ -1,5 +1,5 @@
 # pLSM: Affordable and scalable advanced light sheet microscopy
-![Mouse whole brain vasculature imaged by pLSM](./Img/MouseBrain_Vasc_2x2.png)
+![Mouse whole brain vasculature imaged by pLSM](./Img/MouseBrain_Vasculature_TomerLab_pLSM.png)
 
 ## Overview
 pLSM framework 
@@ -12,7 +12,8 @@ https://rdcu.be/dTCrk
 https://www.nature.com/articles/s41551-024-01249-9
 \
 Nature Biomedical Engineering
-
+\
+Youtube [playlist](https://www.youtube.com/playlist?list=PLXQ8jqcqgW9DVrepPeLzAHwnEqtsX-N7M) of all supplementary videos associated with the publication.
 
 ## Installation (Further details in the Supplementary file in the publication)
 ![](./Img/setup.png)
@@ -45,7 +46,8 @@ Nature Biomedical Engineering
 
 
 ### Instructions for SD image installation and use:
-1. Download the system disk image, burn it onto an SD card using Win32DiskImager/balenaEther or similar software of your choice. 
+1. Request the system disk image, burn it onto an SD card using Win32DiskImager/balenaEther or similar software of your choice. 
+(Given the large size, we are figuring out a way to provide a public download link. In the mean time, please reach out.)
 
 2. Insert the SD card into the Nvidia Nano Board (at this stage, the board should be connected to a monitor, keyboard, mouse, and Ethernet internet). 
 
